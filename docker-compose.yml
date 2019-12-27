@@ -1,0 +1,43 @@
+version: '2'
+
+services:
+    db:
+        image: mysql:5.7
+        command: mysqld --user=root --verbose --skip-sync-frm --innodb_flush_log_at_trx_commit=0 --innodb-support-xa=0 --bind-address=0.0.0.0 --query-cache-type=1
+        ports:
+            - 3306:3306
+        volumes:
+            - "./.data/db:/var/lib/mysql"
+        environment:
+            MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+            MYSQL_DATABASE: ${MYSQL_DATABASE}
+            MYSQL_USER: ${MYSQL_USER}
+            MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+            TZ: "Europe/Warsaw"
+    php:
+        build: ./php7-fpm
+        ports:
+            - 9000:9000
+        links:
+            - db:mysqldb
+        volumes:
+            - ${SYMFONY_APP_PATH}:/var/www/website
+            - ./logs/qds:/var/www/symfony/var/logs
+    nginx:
+        build: ./nginx
+        ports:
+            - 80:80
+        links:
+            - php
+        volumes_from:
+            - php
+        volumes:
+            - ./logs/nginx/:/var/log/nginx
+        environment:
+            TZ: "Europe/Warsaw"
+    phpmyadmin:
+        image: phpmyadmin/phpmyadmin
+        ports:
+            - "8080:80"
+        links:
+            - db
